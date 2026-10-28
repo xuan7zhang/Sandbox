@@ -25,7 +25,9 @@ python scripts/run_loop.py configs/minimal_mock.yaml   # 离线冒烟，约 10 s
 
 Killarney（L40S 48G）：Qwen3-30B-A3B bf16 约 61GB，单卡放不下，用 2 卡 TP=2。`scripts/slurm_s1.sh` 一个有限时长作业里
 起服务（OPSD 环境的 vllm 0.11.0，权重在 `/datasets/omni_pretraining/gta2/models/Qwen3-30B-A3B-Instruct-2507`，端口按作业号错开）
-→ 两个世界的 S1 普查 → 1 代冒烟 + report，结束即释放卡：`mkdir -p runs/slurm && sbatch scripts/slurm_s1.sh`。
+→ 两个世界的 S1 普查 → 1 代冒烟 + report，结束即释放卡：`mkdir -p /scratch/xzhan576/rsi-sandbox-runs/slurm && sbatch scripts/slurm_s1.sh`。
+输出全部在 `/scratch/xzhan576/rsi-sandbox-runs/`（aip-xli135 的 /project 配额已用约 97%，SQLite 在那里出现过 `disk I/O error`），
+权重还没下完时作业会先等（最多 90 分钟）。之后 S2 的 run_dir 也放 /scratch。
 
 ## 1A. 本地开源模型（推荐先跑这个，零 API 费用）
 
