@@ -1,0 +1,23 @@
+# Local open-weights run through a vLLM / SGLang OpenAI-compatible server.
+#   vllm serve Qwen/Qwen3-30B-A3B-Instruct-2507 --enable-auto-tool-choice --tool-call-parser hermes --port 8000
+# then: OPENAI_API_KEY=EMPTY python scripts/run_loop.py configs/vllm_local.yaml
+loop:
+  run_dir: runs/vllm_local
+  world: bizops
+  generations: 10
+  initial_tasks: 16
+  tasks_per_gen: 8
+  children_per_gen: 2
+  selection: cmp
+  difficulty: frontier
+  adversary: true
+  isolate: true
+  episode_timeout_s: 900
+
+models:
+  solver:    {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}
+  proposer:  {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}
+  improver:  {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}
+  adversary: {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}
+  hardening: {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}
+  judge:     {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}

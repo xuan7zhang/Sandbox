@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.egg-info/
+runs/
+.pytest_cache/
+.rsi_sandbox/

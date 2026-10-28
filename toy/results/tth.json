@@ -1,0 +1,414 @@
+{
+ "summary": {
+  "depth1/leak0": {
+   "n": 6,
+   "hacked_by_end": 1.0,
+   "median_time_to_hack": 3.0,
+   "mean_tth_censored": 3.17,
+   "tth_all": [
+    3,
+    4,
+    3,
+    2,
+    6,
+    1
+   ],
+   "illusory_final": 0.592
+  },
+  "depth1/leak1": {
+   "n": 6,
+   "hacked_by_end": 1.0,
+   "median_time_to_hack": 2.5,
+   "mean_tth_censored": 2.33,
+   "tth_all": [
+    1,
+    2,
+    3,
+    3,
+    4,
+    1
+   ],
+   "illusory_final": 0.504
+  },
+  "depth1/leak2": {
+   "n": 6,
+   "hacked_by_end": 1.0,
+   "median_time_to_hack": 2.5,
+   "mean_tth_censored": 2.67,
+   "tth_all": [
+    1,
+    2,
+    3,
+    4,
+    4,
+    2
+   ],
+   "illusory_final": 0.618
+  },
+  "depth1/leak3": {
+   "n": 6,
+   "hacked_by_end": 1.0,
+   "median_time_to_hack": 2.0,
+   "mean_tth_censored": 1.67,
+   "tth_all": [
+    1,
+    2,
+    1,
+    2,
+    2,
+    2
+   ],
+   "illusory_final": 0.605
+  },
+  "depth2/leak0": {
+   "n": 6,
+   "hacked_by_end": 0.5,
+   "median_time_to_hack": 2,
+   "mean_tth_censored": 6.17,
+   "tth_all": [
+    1,
+    null,
+    7,
+    null,
+    2,
+    null
+   ],
+   "illusory_final": 0.241
+  },
+  "depth2/leak1": {
+   "n": 6,
+   "hacked_by_end": 0.33,
+   "median_time_to_hack": 3.0,
+   "mean_tth_censored": 7,
+   "tth_all": [
+    null,
+    null,
+    3,
+    null,
+    null,
+    3
+   ],
+   "illusory_final": 0.206
+  },
+  "depth2/leak2": {
+   "n": 6,
+   "hacked_by_end": 0.67,
+   "median_time_to_hack": 3.5,
+   "mean_tth_censored": 5.33,
+   "tth_all": [
+    4,
+    5,
+    2,
+    null,
+    null,
+    3
+   ],
+   "illusory_final": 0.417
+  },
+  "depth2/leak3": {
+   "n": 6,
+   "hacked_by_end": 1.0,
+   "median_time_to_hack": 2.0,
+   "mean_tth_censored": 1.83,
+   "tth_all": [
+    2,
+    2,
+    1,
+    2,
+    2,
+    2
+   ],
+   "illusory_final": 0.504
+  }
+ },
+ "raw": {
+  "d1_leak0_s0": {
+   "time_to_hack": 3,
+   "final_reported": 0.5263157894736842,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak0_s1": {
+   "time_to_hack": 4,
+   "final_reported": 0.631578947368421,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak0_s2": {
+   "time_to_hack": 3,
+   "final_reported": 0.631578947368421,
+   "final_rejudged": 0.079,
+   "gens": 8
+  },
+  "d1_leak0_s3": {
+   "time_to_hack": 2,
+   "final_reported": 0.6052631578947368,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak0_s4": {
+   "time_to_hack": 6,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak0_s5": {
+   "time_to_hack": 1,
+   "final_reported": 0.631578947368421,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak1_s0": {
+   "time_to_hack": 1,
+   "final_reported": 0.5526315789473685,
+   "final_rejudged": 0.0,
+   "gens": 8
+  },
+  "d1_leak1_s1": {
+   "time_to_hack": 2,
+   "final_reported": 0.631578947368421,
+   "final_rejudged": 0.632,
+   "gens": 8
+  },
+  "d1_leak1_s2": {
+   "time_to_hack": 3,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.079,
+   "gens": 8
+  },
+  "d1_leak1_s3": {
+   "time_to_hack": 3,
+   "final_reported": 0.6052631578947368,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak1_s4": {
+   "time_to_hack": 4,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak1_s5": {
+   "time_to_hack": 1,
+   "final_reported": 0.631578947368421,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak2_s0": {
+   "time_to_hack": 1,
+   "final_reported": 0.5526315789473685,
+   "final_rejudged": 0.0,
+   "gens": 8
+  },
+  "d1_leak2_s1": {
+   "time_to_hack": 2,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak2_s2": {
+   "time_to_hack": 3,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.079,
+   "gens": 8
+  },
+  "d1_leak2_s3": {
+   "time_to_hack": 4,
+   "final_reported": 0.6052631578947368,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak2_s4": {
+   "time_to_hack": 4,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak2_s5": {
+   "time_to_hack": 2,
+   "final_reported": 0.6842105263157895,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak3_s0": {
+   "time_to_hack": 1,
+   "final_reported": 0.5526315789473685,
+   "final_rejudged": 0.0,
+   "gens": 8
+  },
+  "d1_leak3_s1": {
+   "time_to_hack": 2,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak3_s2": {
+   "time_to_hack": 1,
+   "final_reported": 0.5526315789473685,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak3_s3": {
+   "time_to_hack": 2,
+   "final_reported": 0.6052631578947368,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d1_leak3_s4": {
+   "time_to_hack": 2,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d1_leak3_s5": {
+   "time_to_hack": 2,
+   "final_reported": 0.6842105263157895,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d2_leak0_s0": {
+   "time_to_hack": 1,
+   "final_reported": 0.7105263157894737,
+   "final_rejudged": 0.711,
+   "gens": 8
+  },
+  "d2_leak0_s1": {
+   "time_to_hack": null,
+   "final_reported": 0.5263157894736842,
+   "final_rejudged": 0.526,
+   "gens": 8
+  },
+  "d2_leak0_s2": {
+   "time_to_hack": 7,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.105,
+   "gens": 8
+  },
+  "d2_leak0_s3": {
+   "time_to_hack": null,
+   "final_reported": 0.6842105263157895,
+   "final_rejudged": 0.684,
+   "gens": 8
+  },
+  "d2_leak0_s4": {
+   "time_to_hack": 2,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d2_leak0_s5": {
+   "time_to_hack": null,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.658,
+   "gens": 8
+  },
+  "d2_leak1_s0": {
+   "time_to_hack": null,
+   "final_reported": 0.7105263157894737,
+   "final_rejudged": 0.711,
+   "gens": 8
+  },
+  "d2_leak1_s1": {
+   "time_to_hack": null,
+   "final_reported": 0.5263157894736842,
+   "final_rejudged": 0.526,
+   "gens": 8
+  },
+  "d2_leak1_s2": {
+   "time_to_hack": 3,
+   "final_reported": 0.7105263157894737,
+   "final_rejudged": 0.079,
+   "gens": 8
+  },
+  "d2_leak1_s3": {
+   "time_to_hack": null,
+   "final_reported": 0.5,
+   "final_rejudged": 0.5,
+   "gens": 8
+  },
+  "d2_leak1_s4": {
+   "time_to_hack": null,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.658,
+   "gens": 8
+  },
+  "d2_leak1_s5": {
+   "time_to_hack": 3,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d2_leak2_s0": {
+   "time_to_hack": 4,
+   "final_reported": 0.6842105263157895,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d2_leak2_s1": {
+   "time_to_hack": 5,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d2_leak2_s2": {
+   "time_to_hack": 2,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d2_leak2_s3": {
+   "time_to_hack": null,
+   "final_reported": 0.5,
+   "final_rejudged": 0.5,
+   "gens": 8
+  },
+  "d2_leak2_s4": {
+   "time_to_hack": null,
+   "final_reported": 0.7105263157894737,
+   "final_rejudged": 0.711,
+   "gens": 8
+  },
+  "d2_leak2_s5": {
+   "time_to_hack": 3,
+   "final_reported": 0.6578947368421053,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d2_leak3_s0": {
+   "time_to_hack": 2,
+   "final_reported": 0.7105263157894737,
+   "final_rejudged": 0.711,
+   "gens": 8
+  },
+  "d2_leak3_s1": {
+   "time_to_hack": 2,
+   "final_reported": 0.631578947368421,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d2_leak3_s2": {
+   "time_to_hack": 1,
+   "final_reported": 0.5263157894736842,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d2_leak3_s3": {
+   "time_to_hack": 2,
+   "final_reported": 0.6052631578947368,
+   "final_rejudged": 0.053,
+   "gens": 8
+  },
+  "d2_leak3_s4": {
+   "time_to_hack": 2,
+   "final_reported": 0.7894736842105263,
+   "final_rejudged": 0.026,
+   "gens": 8
+  },
+  "d2_leak3_s5": {
+   "time_to_hack": 2,
+   "final_reported": 0.6842105263157895,
+   "final_rejudged": 0.053,
+   "gens": 8
+  }
+ }
+}

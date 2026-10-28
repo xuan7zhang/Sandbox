@@ -1,0 +1,19 @@
+# Fully offline smoke run: scripted "models", limited initial agent, mock improver
+# that unlocks longer action budgets. Exercises every layer in ~10 s.
+loop:
+  run_dir: runs/minimal_mock
+  world: bizops
+  generations: 3
+  initial_tasks: 6
+  tasks_per_gen: 4
+  children_per_gen: 2
+  selection: best          # best | cmp | random
+  difficulty: frontier     # or a fixed int, e.g. "3"
+  adversary: true
+  initial_agent_dir: tests/fixtures/agent_limited
+
+models:
+  solver:    {provider: mock, script: "sandbox.llm.mock_scripts:FollowInstruction"}
+  adversary: {provider: mock, script: "sandbox.llm.mock_scripts:WreckingAdversary"}
+  proposer:  {provider: mock}
+  improver:  {provider: mock, kwargs: {bump_constant: MAX_ACTIONS, bump_by: 2}}

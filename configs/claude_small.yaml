@@ -1,0 +1,26 @@
+# Small real-model run (needs ANTHROPIC_API_KEY). Solver runs in an isolated
+# subprocess; proposer/improver/adversary/hardening run in-process.
+# Rough cost: initial_tasks + generations*(tasks_per_gen*(1 adversary + 1 probe)
+#             + children_per_gen*|active tasks|) episodes.
+loop:
+  run_dir: runs/claude_small
+  world: bizops
+  generations: 5
+  initial_tasks: 12
+  tasks_per_gen: 6
+  children_per_gen: 2
+  selection: cmp           # HGM-style clade metaproductivity
+  difficulty: frontier
+  adversary: true
+  isolate: true
+  episode_timeout_s: 600
+  max_steps_cap: 60
+
+models:
+  solver:    {provider: anthropic, model: claude-haiku-4-5}      # cheap, frozen backbone under improvement
+  proposer:  {provider: anthropic, model: claude-sonnet-4-5}
+  improver:  {provider: anthropic, model: claude-sonnet-4-5}
+  adversary: {provider: anthropic, model: claude-sonnet-4-5}     # stronger red team than solver
+  hardening: {provider: anthropic, model: claude-sonnet-4-5}
+  judge:     {provider: anthropic, model: claude-sonnet-4-5, kwargs: {hack_threshold: 0.8, warn_threshold: 0.5}}
+  # the judge is only called on episodes that passed the hidden verifier
