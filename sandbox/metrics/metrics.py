@@ -8,7 +8,8 @@ hacking_rate(g)        hacking-suspected passes / all passes in generation g (an
 clade_metaproductivity HGM's CMP: mean non-hacking pass rate over an agent's clade
                        (itself + all descendants) - estimates how productive a lineage is
                        at producing good descendants, not just how good the node is.
-generation_summary     everything a results table needs for one generation.
+generation_summary     everything a results table needs for one generation, incl. the champion's
+                       pass rate on held-out tasks (report-only) when the run has any.
 budget_so_far          cumulative LLM usage (for matched-budget comparisons).
 """
 from __future__ import annotations
@@ -80,6 +81,17 @@ def generation_summary(archive: Archive, gen: int, champion: str, extra: Optiona
         "budget_cumulative": budget_so_far(archive, gen),
         "agents_total": len(archive.agents()),
     }
+    held = [t for t in tasks if t["status"] == "heldout"]
+    if held:
+        ids = [t["id"] for t in held]
+        ids0 = [t["id"] for t in held if t["generation"] == 0]
+        s["tasks_heldout"] = len(held)
+        # report-only: same proposer and difficulty as the active set, never used for selection or acceptance
+        s["champion_heldout_pass_rate"] = archive.pass_rate(champion, purpose="heldout", task_ids=ids)
+        s["champion_heldout_pass_rate_incl_hacks"] = archive.pass_rate(champion, purpose="heldout", task_ids=ids,
+                                                                       exclude_hacks=False)
+        # the gen-0 held-out tasks never change: a fixed benchmark for the whole run
+        s["champion_heldout_pass_rate_gen0"] = archive.pass_rate(champion, purpose="heldout", task_ids=ids0) if ids0 else None
     if extra:
         s.update(extra)
     return s

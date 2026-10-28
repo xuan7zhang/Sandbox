@@ -1,5 +1,7 @@
 # Local open-weights run through a vLLM / SGLang OpenAI-compatible server.
 #   vllm serve Qwen/Qwen3-30B-A3B-Instruct-2507 --enable-auto-tool-choice --tool-call-parser hermes --port 8000
+#   (serving from a local path: add --served-model-name Qwen/Qwen3-30B-A3B-Instruct-2507; the scripts check the
+#    server and the model name before starting and exit on a mismatch)
 # then: OPENAI_API_KEY=EMPTY python scripts/run_loop.py configs/vllm_local.yaml
 loop:
   run_dir: runs/vllm_local
@@ -13,6 +15,10 @@ loop:
   adversary: true
   isolate: true
   episode_timeout_s: 900
+  paired_eval: true        # parent re-run with its children in the same generation
+  accept_margin: 1         # extra clean tasks a child needs; raise it if parent_eval.retest_flips shows noise
+  initial_heldout: 8       # report-only tasks: never used for selection, acceptance or improver diagnostics
+  heldout_per_gen: 4
 
 models:
   solver:    {provider: openai, model: Qwen/Qwen3-30B-A3B-Instruct-2507, base_url: http://localhost:8000/v1}

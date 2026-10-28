@@ -15,6 +15,10 @@ loop:
   isolate: true
   episode_timeout_s: 600
   max_steps_cap: 60
+  paired_eval: true        # parent re-run with its children in the same generation
+  accept_margin: 1         # extra clean tasks a child needs; raise it if parent_eval.retest_flips shows noise
+  initial_heldout: 6       # report-only tasks: never used for selection, acceptance or improver diagnostics
+  heldout_per_gen: 3
 
 models:
   solver:    {provider: anthropic, model: claude-haiku-4-5}      # cheap, frozen backbone under improvement

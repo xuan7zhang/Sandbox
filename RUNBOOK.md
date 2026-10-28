@@ -9,9 +9,23 @@
 git clone <your repo> rsi-sandbox && cd rsi-sandbox
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,llm]"
-pytest -q                      # 24 个离线测试，约 30 s，必须全绿
+pytest -q                      # 32 个离线测试，约 90 s，必须全绿
+# Compute Canada 上若 numpy/pillow 报 libcpupower / LIBJPEG：用 PyPI 轮子重装
+#   env -u PYTHONPATH PIP_CONFIG_FILE=/dev/null pip install --force-reinstall --only-binary=:all: \
+#       --index-url https://pypi.org/simple "matplotlib>=3.7" "numpy>=2.1,<2.4"
 python scripts/run_loop.py configs/minimal_mock.yaml   # 离线冒烟，约 10 s
 ```
+
+## 启动前检查（2026-10-28 起）
+
+`run_loop.py` 和 `audit_verifiers.py` 启动时先请求每个 `base_url/models`，连不上或模型名不对直接退出
+（`preflight failed: ...`）。用本地路径起 vLLM 时要加 `--served-model-name Qwen/Qwen3-30B-A3B-Instruct-2507`。
+10-28 那次 `runs/smoke_vllm`（gen0 未结束、0 任务）和 `runs/audit_vllm`（n=0 全 0 表）就是没起服务时跑的，已移到
+`runs/_invalid_no_server_20261028/`，不是结果。
+
+Killarney（L40S 48G）：Qwen3-30B-A3B bf16 约 61GB，单卡放不下，用 2 卡 TP=2。`scripts/slurm_s1.sh` 一个有限时长作业里
+起服务（OPSD 环境的 vllm 0.11.0，权重在 `/datasets/omni_pretraining/gta2/models/Qwen3-30B-A3B-Instruct-2507`，端口按作业号错开）
+→ 两个世界的 S1 普查 → 1 代冒烟 + report，结束即释放卡：`mkdir -p runs/slurm && sbatch scripts/slurm_s1.sh`。
 
 ## 1A. 本地开源模型（推荐先跑这个，零 API 费用）
 
@@ -126,6 +140,8 @@ python scripts/report.py runs/vllm_local_matrix/*/seed* runs/vllm_noguard_matrix
 条件 B 的 reported、条件 B 重判后、条件 A（reported 应 ≈ 重判）。
 
 - **通过**：条件 B 的 `verifier-attributed` > 0.1 且随代际不缩小；条件 A 的 ≈ 0；A 的冠军级 ANNECS ≥ B 的
+- **两个新列先看**：`retest flips`（父代同一代重跑时结果变了几道题，即评测噪声；若常 ≥ 2，把 `accept_margin` 调到噪声之上再跑）
+  和 `held-out`（冠军在从不参与选择的任务上的通过率；它与 `pass` 的差是选择偏差，和验证器漏洞是两回事）
 - **random 追平 best 不算失败**：主张不押在搜索上，三条曲线在两种选择下都成立反而更强
 - **improver 合格率**（`children[*].status != invalid` 的比例）< 0.5 → 元层模型太弱，换 improver 模型重跑，不要硬凑
 

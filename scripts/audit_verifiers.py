@@ -26,7 +26,7 @@ from collections import Counter
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sandbox.llm import MockLLM, get_llm  # noqa: E402
+from sandbox.llm import MockLLM, get_llm, preflight  # noqa: E402
 from sandbox.llm.mock_scripts import DoNothing, FollowInstruction, Shotgun, WreckingAdversary  # noqa: E402
 from sandbox.proposer import LLMProposer, MockProposer, TaskFilter  # noqa: E402
 from sandbox.solver import run_episode  # noqa: E402
@@ -57,6 +57,10 @@ def main():
     cfg = yaml.safe_load(open(a.config))
     world_name = a.world or cfg.get("loop", {}).get("world", "bizops")
     p = cfg.get("models", {}).get("proposer", {})
+    try:
+        preflight({"proposer": p})
+    except RuntimeError as e:
+        sys.exit(f"preflight failed: {e}")
     if p.get("provider") == "mock":
         proposer = MockProposer(seed=0)
     else:
@@ -65,22 +69,30 @@ def main():
 
     # 1. generate + filter
     cands, accepted, rep_summary = [], [], Counter()
-    batch, g = 8, 0
+    batch, g, errors, consecutive = 8, 0, 0, 0
     while len(accepted) < a.n and g < 4 * a.n // batch + 2:
         world = get_world(world_name, seed=5000 + g)
         try:
             c = proposer.propose(world, batch, generation=g, existing=accepted, difficulty=a.difficulty)
+            consecutive = 0
         except Exception as e:  # noqa: BLE001
             print(f"proposer error gen {g}: {e!r}")
-            c = []
+            c, errors, consecutive = [], errors + 1, consecutive + 1
+            if consecutive >= 3:
+                sys.exit(f"proposer failed {consecutive} times in a row; last error: {e!r}")
         rep = TaskFilter().run(c, accepted)
         for k, v in rep.summary().get("rejected_by", {}).items():
             rep_summary[k] += v
         cands.extend(c)
         accepted.extend(rep.accepted)
         g += 1
+    acc_total = len(accepted)
     accepted = accepted[:a.n]
-    print(f"candidates {len(cands)} -> accepted {len(accepted)}  rejected_by={dict(rep_summary)}")
+    print(f"candidates {len(cands)} -> accepted {len(accepted)}  rejected_by={dict(rep_summary)}  proposer_errors={errors}")
+    if not accepted:
+        json.dump({"n": 0, "error": "no accepted task", "candidates": len(cands), "proposer_errors": errors,
+                   "rejected_by": dict(rep_summary)}, open(os.path.join(a.out, "audit.json"), "w"), indent=1)
+        sys.exit("no accepted task: the table would be empty, not a pass (see rejected_by / proposer_errors)")
 
     # 2. attack before / after hardening
     stack = VerifierStack()
@@ -107,7 +119,9 @@ def main():
     table = {name: {"passes_before": rate("before", name), "undetected_before": rate("before", name, True),
                     "passes_after": rate("after", name), "undetected_after": rate("after", name, True)} for name in EXPLOITS}
     table["hardened"] = {k: round(sum(1 for r in rows if r["hardened"][k]) / n, 3) for k in ("scope_guard", "minimality_guard")}
-    json.dump({"n": len(rows), "rejected_by": dict(rep_summary), "table": table, "rows": rows,
+    json.dump({"n": len(rows), "candidates": len(cands), "proposer_errors": errors,
+               "acceptance_rate": round(acc_total / len(cands), 3) if cands else None,
+               "rejected_by": dict(rep_summary), "table": table, "rows": rows,
                "tasks": accepted}, open(os.path.join(a.out, "audit.json"), "w"), indent=1, ensure_ascii=False)
     print(json.dumps({"n": len(rows), "rejected_by": dict(rep_summary), "table": table}, indent=1))
 

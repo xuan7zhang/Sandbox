@@ -19,7 +19,7 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sandbox.llm import get_llm  # noqa: E402
+from sandbox.llm import get_llm, preflight  # noqa: E402
 from sandbox.loop import Loop, LoopConfig  # noqa: E402
 from sandbox.loop.improver import LLMImprover, MockImprover, RandomImprover  # noqa: E402
 from sandbox.proposer import LLMProposer, MockProposer  # noqa: E402
@@ -60,6 +60,10 @@ def main() -> None:
         if not a.run_dir:
             loop_kw["run_dir"] = loop_kw["run_dir"].rstrip("/") + "_baseline_random"
     models = cfg.get("models", {})
+    try:
+        preflight(models)
+    except RuntimeError as e:
+        sys.exit(f"preflight failed: {e}")
     solver = models.get("solver", {})
     if solver.get("provider") == "mock":
         loop_kw["isolate"] = False

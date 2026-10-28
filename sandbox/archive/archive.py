@@ -101,14 +101,16 @@ class Archive:
     def task_path(self, task_id: str) -> str:
         return os.path.join(self.run_dir, "tasks", f"{task_id}.json")
 
-    def add_task(self, task: Dict[str, Any]) -> None:
+    def add_task(self, task: Dict[str, Any], status: str = "active") -> None:
+        """`status`: "active" (used for selection, acceptance and improver diagnostics) or "heldout"
+        (only ever used to report the champion; never seen by selection, acceptance or the improver)."""
         task.setdefault("meta", {})["verifier_version"] = 1
         with open(self.task_path(task["id"]), "w") as f:
             json.dump(task, f, ensure_ascii=False, indent=1)
         self._snapshot_task(task, 1, "created")
         self.db.execute("INSERT OR REPLACE INTO tasks VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                         (task["id"], task["generation"], task["world"], task["seed"], task["difficulty"],
-                         json.dumps(task.get("tags", [])), 1, None, None, "active", time.time()))
+                         json.dumps(task.get("tags", [])), 1, None, None, status, time.time()))
         self.db.commit()
 
     def update_task(self, task: Dict[str, Any], reason: str) -> int:
@@ -179,8 +181,11 @@ class Archive:
         return [dict(r) for r in self.db.execute(q + " ORDER BY id", tuple(where.values()))]
 
     def pass_rate(self, agent_version: str, *, exclude_hacks: bool = True, task_ids: Optional[Iterable[str]] = None,
-                  purpose: str = "eval") -> Optional[float]:
-        eps = self.episodes(agent_version=agent_version, purpose=purpose)
+                  purpose: str = "eval", generation: Optional[int] = None) -> Optional[float]:
+        where: Dict[str, Any] = {"agent_version": agent_version, "purpose": purpose}
+        if generation is not None:
+            where["generation"] = generation
+        eps = self.episodes(**where)
         if task_ids is not None:
             ids = set(task_ids)
             eps = [e for e in eps if e["task_id"] in ids]

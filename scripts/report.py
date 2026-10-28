@@ -9,8 +9,8 @@ and paper-style figures.
 Outputs (in --out, default <first run>/report):
   summary.md     per-generation table for every run + re-judge table
   summary.json   the same, machine-readable
-  curves.png     small multiples: pass rate, ANNECS, hacking rate, difficulty target,
-                 adversary catch rate, cumulative LLM calls  (one line per run)
+  curves.png     small multiples: pass rate (dashed: held-out), ANNECS, hacking rate, difficulty
+                 target, adversary catch rate, cumulative LLM calls  (one line per run)
 Runs are grouped by the `condition` recorded in config.json (selection + improver)
 so that cmp / best / random appear as separate series with mean ± 95% CI when
 several seeds exist.
@@ -59,13 +59,17 @@ def load_run(run_dir: str) -> Dict[str, Any]:
 
 
 def table(run: Dict[str, Any]) -> str:
-    hdr = "| gen | champion | pass | incl.hacks | CMP | ANNECS | tasks | novel | hack% | diff | adv caught | hardened | accept% | LLM calls |\n"
-    hdr += "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+    hdr = ("| gen | champion | pass | incl.hacks | held-out | held-out g0 | retest flips | CMP | ANNECS | tasks | novel | hack% "
+           "| diff | adv caught | hardened | accept% | LLM calls |\n")
+    hdr += "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
     rows = []
     for s in run["gens"]:
         h, adv, pa = s.get("hacking") or {}, s.get("adversary") or {}, s.get("proposer_acceptance") or {}
-        rows.append("| {gen} | {ch} | {pr} | {prh} | {cmp} | {an} | {ta} | {nv} | {hk} | {df} | {cr} | {hd} | {ac} | {calls} |".format(
+        pe = s.get("parent_eval") or {}
+        flips = f"{pe['retest_flips']}/{pe['retest_tasks']}" if pe.get("retest_tasks") else "-"
+        rows.append("| {gen} | {ch} | {pr} | {prh} | {ho} | {ho0} | {fl} | {cmp} | {an} | {ta} | {nv} | {hk} | {df} | {cr} | {hd} | {ac} | {calls} |".format(
             gen=s["gen"], ch=s.get("champion"), pr=_f(s.get("champion_pass_rate")),
+            ho=_f(s.get("champion_heldout_pass_rate")), ho0=_f(s.get("champion_heldout_pass_rate_gen0")), fl=flips,
             prh=_f(s.get("champion_pass_rate_incl_hacks")), cmp=_f(s.get("champion_cmp")), an=s.get("annecs"),
             ta=s.get("tasks_active"), nv=s.get("tasks_novel_this_gen"), hk=_f(h.get("hacking_rate_of_passes")),
             df=s.get("difficulty_target", "-"), cr=_f(adv.get("caught_rate")), hd=adv.get("hardened", "-"),
@@ -115,6 +119,16 @@ def plot(runs: List[Dict[str, Any]], out_png: str) -> None:
                 continue
             means, errs = zip(*(ci95(by_gen[g]) for g in gens))
             ax.plot(gens, means, color=color, linewidth=2, marker="o", markersize=5, label=cond)
+            if key == "champion_pass_rate":  # held-out tasks (report-only), same colour, dashed
+                hb: Dict[int, List[float]] = defaultdict(list)
+                for r in groups[cond]:
+                    for s in r["gens"]:
+                        if s.get("champion_heldout_pass_rate") is not None:
+                            hb[s["gen"]].append(float(s["champion_heldout_pass_rate"]))
+                if hb:
+                    hg = sorted(hb)
+                    ax.plot(hg, [ci95(hb[g])[0] for g in hg], color=color, linewidth=1.5, linestyle="--",
+                            label=f"{cond} (held-out)")
             if len(groups[cond]) > 1:
                 ax.fill_between(gens, [m - e for m, e in zip(means, errs)], [m + e for m, e in zip(means, errs)],
                                 color=color, alpha=0.15, linewidth=0)
@@ -132,7 +146,7 @@ def plot(runs: List[Dict[str, Any]], out_png: str) -> None:
         ax.tick_params(colors=INK2, labelsize=8)
         if key in ("champion_pass_rate", "hacking_rate", "caught_rate"):
             ax.set_ylim(-0.02, 1.02)
-    if len(conds) > 1:
+    if len(conds) > 1 or any("held-out" in lb for lb in axes.flat[0].get_legend_handles_labels()[1]):
         axes.flat[0].legend(frameon=False, fontsize=8, loc="lower right")
     fig.suptitle("Self-improvement run" + (f"s ({len(runs)})" if len(runs) > 1 else f": {runs[0]['name']}"),
                  fontsize=12, color=INK, x=0.01, ha="left")
@@ -167,6 +181,14 @@ def main() -> None:
             for g, v in rj["by_generation"].items():
                 md.append(f"| {g} | {v['n']} | {v['old_rate']:.2f} | {v['new_rate']:.2f} | {v['verifier_attributed']:+.2f} |\n")
             md.append("\n")
+            arch = Archive(r["dir"])
+            if arch.tasks("heldout"):
+                rh = rejudge(arch, purpose="heldout", stack=VerifierStack())
+                entry["rejudge_heldout"] = {k: v for k, v in rh.items() if k not in ("rows", "annecs")}
+                md.append("Held-out tasks re-judged:\n\n| gen | n | old pass | re-judged pass | verifier-attributed |\n|---|---|---|---|---|\n")
+                for g, v in rh["by_generation"].items():
+                    md.append(f"| {g} | {v['n']} | {v['old_rate']:.2f} | {v['new_rate']:.2f} | {v['verifier_attributed']:+.2f} |\n")
+                md.append("\n")
         summary["runs"].append(entry)
 
     # cross-run aggregate on the final generation
@@ -174,15 +196,16 @@ def main() -> None:
     for r in runs:
         groups[r["condition"]].append(r["gens"][-1])
     if len(runs) > 1:
-        md.append("## Final-generation aggregate (mean ± 95% CI over runs)\n\n| condition | runs | pass | ANNECS | hack% | LLM calls |\n|---|---|---|---|---|---|\n")
+        md.append("## Final-generation aggregate (mean ± 95% CI over runs)\n\n| condition | runs | pass | held-out | ANNECS | hack% | LLM calls |\n|---|---|---|---|---|---|---|\n")
         agg = {}
         for cond, finals in groups.items():
             pr = ci95([s.get("champion_pass_rate") for s in finals])
             an = ci95([s.get("annecs") for s in finals])
             hk = ci95([(s.get("hacking") or {}).get("hacking_rate_of_passes") for s in finals])
             calls = ci95([(s.get("budget_cumulative") or {}).get("llm_calls") for s in finals])
-            agg[cond] = {"runs": len(finals), "pass": pr, "annecs": an, "hack": hk, "llm_calls": calls}
-            md.append(f"| {cond} | {len(finals)} | {_pm(pr)} | {_pm(an)} | {_pm(hk)} | {_pm(calls, 0)} |\n")
+            ho = ci95([s.get("champion_heldout_pass_rate") for s in finals])
+            agg[cond] = {"runs": len(finals), "pass": pr, "heldout": ho, "annecs": an, "hack": hk, "llm_calls": calls}
+            md.append(f"| {cond} | {len(finals)} | {_pm(pr)} | {_pm(ho)} | {_pm(an)} | {_pm(hk)} | {_pm(calls, 0)} |\n")
         summary["aggregate_final"] = agg
     with open(os.path.join(out, "summary.md"), "w") as f:
         f.write("".join(md))

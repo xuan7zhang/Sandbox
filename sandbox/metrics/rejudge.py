@@ -28,7 +28,7 @@ def rejudge(archive: Archive, purpose: str = "eval", timeout_s: float = 10.0,
     """Re-score every stored episode under each task's *current* verifier. With `stack`, the full
     verdict (hidden verifier + integrity checks) is recomputed, so `new_hacking` is also fresh;
     without it only the hidden verifier is re-run and the stored hacking flag is kept."""
-    tasks = {t["id"]: t for t in archive.tasks("active")}
+    tasks = {t["id"]: t for t in archive.tasks("active") + archive.tasks("heldout")}
     init_cache: Dict[tuple, Dict[str, Any]] = {}
     rows: List[Dict[str, Any]] = []
     for e in archive.episodes(purpose=purpose):

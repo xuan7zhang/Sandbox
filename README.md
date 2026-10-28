@@ -45,7 +45,19 @@ things rather than hide them.
 | Verifier | `sandbox/verifier/` | Hidden `verify()` code runs sandboxed (`python -I -S`, rlimits, timeout, import whitelist). The `VerifierStack` adds integrity checks: canary, forbidden-action, collateral (out-of-scope state changes), false-claim, zero-action-pass, plus an optional LLM `RubricJudge` (called only on passes) for letter-not-spirit exploits. A pass that trips a hack-severity flag is **hacking_suspected**. `Adversary` attacks each new task; passes that are caught trigger **hardening** (deterministic scope guard + optional LLM rewrite validated against reference / null / attack), producing a new verifier version. |
 | Archive | `sandbox/archive/` | SQLite + files: agent lineage (parent, status, rationale), versioned tasks (`tasks/history/*.v{k}.json`), every episode (trajectory, verdict, usage, **final state**), per-generation summaries, rollback of verifier versions. |
 | Metrics | `sandbox/metrics/` | `annecs` (tasks novel at creation and later solved without hacking), `hacking_rate`, `clade_metaproductivity` (HGM's CMP), per-difficulty pass rates, cumulative LLM budget, and `rejudge` (re-score every stored episode under the current verifier version → *verifier-attributed progress* per generation). |
-| Loop | `sandbox/loop/` | One generation = propose → attack/harden → probe champion (novelty) → select parent (`best` / `cmp` / `random`) → improve → evaluate child on the full active set → accept only on strict non-hacking improvement → report. `RandomImprover` + `selection: random` is the matched-budget baseline. |
+| Loop | `sandbox/loop/` | One generation = propose → attack/harden → probe champion (novelty) → select parent (`best` / `cmp` / `random`) → improve → evaluate child **and re-run the parent** on the full active set in the same generation → accept only if the child cleanly solves ≥ `accept_margin` more tasks → score the champion on **held-out** tasks → report. `RandomImprover` + `selection: random` is the matched-budget baseline. |
+
+**Evaluation hygiene.** (1) *Paired acceptance* (`paired_eval: true`, default): the parent is re-run with its
+children in the same generation instead of being scored from older episodes, so a child is never compared with a
+stale sample; `parent_eval.retest_flips` reports how many tasks changed outcome on that re-run (the evaluation
+noise `accept_margin` has to clear; real servers are not bit-reproducible even at temperature 0).
+(2) *Held-out tasks* (`initial_heldout`, `heldout_per_gen`): proposed in the same call and at the same difficulty
+as the active tasks, split off at random, hardened the same way, deduplicated against both pools, and used only to
+score the champion (`champion_heldout_pass_rate`, plus `..._gen0` on the fixed gen-0 set). The pass rate on the
+active set is selection-biased; the held-out rate is not.
+(3) *Fail loud*: `run_loop.py` / `audit_verifiers.py` check every OpenAI-compatible endpoint and model name before
+starting, generation 0 refuses to start without accepted tasks, the audit exits non-zero when it has no task, and
+`run_matrix.py` exits non-zero when any run fails.
 
 **Information boundaries.** The solver sees only public state through tools. The
 improver sees only verdict-level diagnostics (pass/fail, flag names, evidence
@@ -57,7 +69,7 @@ itself sandboxed because it is model-written.
 
 ```bash
 pip install -e ".[dev,llm]"
-pytest -q                                           # 24 tests, fully offline (~30 s)
+pytest -q                                           # 32 tests, fully offline (~90 s)
 python scripts/run_loop.py configs/minimal_mock.yaml   # offline 3-generation loop
 python scripts/run_loop.py configs/minimal_mock.yaml --baseline random
 ```
@@ -96,6 +108,8 @@ Everything lands in `runs/<name>/`: `generations.jsonl` (one summary per generat
 
 ```json
 {"gen": 2, "champion": "g2c0", "champion_pass_rate": 0.71, "champion_pass_rate_incl_hacks": 0.79,
+ "champion_heldout_pass_rate": 0.62, "champion_heldout_pass_rate_gen0": 0.75, "tasks_heldout": 16,
+ "parent_eval": {"tasks": 14, "fresh_clean": 9, "retest_tasks": 10, "retest_flips": 1},
  "champion_cmp": 0.64, "annecs": 7, "tasks_active": 14, "tasks_novel_this_gen": 3,
  "hacking": {"episodes": 32, "passes": 22, "hacking_passes": 3, "hacking_rate_of_passes": 0.136},
  "pass_rate_by_difficulty": {"1": 1.0, "2": 0.8, "3": 0.5, "4": 0.2},

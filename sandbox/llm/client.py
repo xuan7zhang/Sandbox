@@ -190,6 +190,31 @@ class MockLLM(LLM):
         return resp
 
 
+# --------------------------------------------------------------------------- preflight
+def preflight(models: Optional[Dict[str, Dict[str, Any]]], timeout_s: float = 10.0) -> None:
+    """Fail fast when an OpenAI-compatible endpoint named in a config is unreachable or does not serve the
+    configured model, instead of letting every proposer / solver call fail one by one."""
+    import urllib.request
+
+    seen = set()
+    for role, m in (models or {}).items():
+        if not m or m.get("provider") != "openai" or not m.get("base_url"):
+            continue
+        key = (m["base_url"].rstrip("/"), m.get("model"))
+        if key in seen:
+            continue
+        seen.add(key)
+        url = key[0] + "/models"
+        req = urllib.request.Request(url, headers={"Authorization": "Bearer " + os.environ.get("OPENAI_API_KEY", "EMPTY")})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_s) as r:
+                served = [d.get("id") for d in json.load(r).get("data", [])]
+        except Exception as e:  # noqa: BLE001
+            raise RuntimeError(f"{role}: cannot reach {url} ({e!r}); start the model server first (RUNBOOK.md 1A)") from e
+        if key[1] and key[1] not in served:
+            raise RuntimeError(f"{role}: {url} serves {served}, not {key[1]!r} (vllm serve ... --served-model-name)")
+
+
 # --------------------------------------------------------------------------- factory
 def get_llm(provider: Optional[str] = None, model: Optional[str] = None, **kw) -> LLM:
     provider = (provider or os.environ.get("LLM_PROVIDER") or "anthropic").lower()

@@ -5,10 +5,12 @@
   3. PROBE     champion on new tasks  -> novel_at_creation flag (for ANNECS)
   4. SELECT    a parent from the archive (best | cmp | random)
   5. IMPROVE   improver(parent code, diagnostics) -> candidate child(ren)
-  6. EVALUATE  child on the full active task set (same set as parent, re-evaluating
-               the parent where verifier versions changed)
-  7. ACCEPT    child if non-hacking pass rate strictly improves on the parent
-  8. REPORT    ANNECS, hacking rate, CMP, budget, acceptance stats
+  6. EVALUATE  child and parent on the full active task set in the same generation
+               (paired: the parent is re-run, not scored from older episodes)
+  7. ACCEPT    child if it cleanly solves >= accept_margin more active tasks than the parent
+  8. HELD-OUT  champion on held-out tasks (proposed alongside the active ones, never used
+               for selection, acceptance or improver diagnostics)
+  9. REPORT    ANNECS, hacking rate, CMP, held-out pass rate, retest flips, budget
 
 All LLM usage (solver, proposer, improver, adversary) is metered so that a run
 with `selection=random` + `RandomImprover` is a matched-budget baseline.
@@ -53,6 +55,10 @@ class LoopConfig:
     episode_timeout_s: float = 600.0
     adversary: bool = True
     minimality_guard: bool = True  # proactive reference-derived verifier hardening (ablation: False)
+    paired_eval: bool = True  # re-run the parent with its children each generation (False: score parent from old episodes)
+    accept_margin: int = 1  # paired: child must cleanly solve at least this many more active tasks than the parent
+    initial_heldout: int = 0  # held-out tasks proposed at gen 0 (report-only)
+    heldout_per_gen: int = 0  # held-out tasks proposed per generation (report-only)
     initial_agent_dir: str = V0_DIR
     solver_llm_cfg: Dict[str, Any] = field(default_factory=dict)  # for subprocess solver
     rng_seed: int = 0
@@ -102,11 +108,16 @@ class Loop:
                              status="champion")
         self.champion = "v0"
         world = get_world(self.cfg.world, seed=self.cfg.base_seed)
-        new = self._propose_and_filter(world, self.cfg.initial_tasks, generation=0, difficulty=self._difficulty_target())
-        adv = self._attack_and_harden(new) if self.cfg.adversary else None
+        new, held = self._propose_and_filter(world, self.cfg.initial_tasks, generation=0, difficulty=self._difficulty_target(),
+                                             n_heldout=self.cfg.initial_heldout)
+        if not new:
+            raise RuntimeError(f"generation 0: the proposer produced no accepted task "
+                               f"(filter summary: {self._last_filter_summary}); refusing to start an empty run")
+        adv = self._attack_and_harden(new + held) if self.cfg.adversary else None
         self._evaluate("v0", new, generation=0, purpose="eval")
         for t in new:
             a.set_task_fields(t["id"], novel_at_creation=int(not self._solved_by(t["id"], "v0")))
+        self._evaluate_heldout("v0", generation=0)
         a.finish_generation(0, generation_summary(a, 0, "v0", {"adversary": _strip(adv), "accepted_child": None}))
         self.log(f"[gen0] v0 pass rate={a.pass_rate('v0')} on {len(new)} tasks")
 
@@ -120,9 +131,10 @@ class Loop:
         # 1. propose
         world = get_world(cfg.world, seed=cfg.base_seed + g)
         diff = self._difficulty_target()
-        new = self._propose_and_filter(world, cfg.tasks_per_gen, generation=g, difficulty=diff)
-        # 2. attack + harden
-        adv = self._attack_and_harden(new) if cfg.adversary else None
+        new, held = self._propose_and_filter(world, cfg.tasks_per_gen, generation=g, difficulty=diff,
+                                             n_heldout=cfg.heldout_per_gen)
+        # 2. attack + harden (held-out verifiers get the same treatment)
+        adv = self._attack_and_harden(new + held) if cfg.adversary else None
         # 3. probe champion on new tasks -> novelty
         self._evaluate(self.champion, new, generation=g, purpose="eval")
         for t in new:
@@ -131,8 +143,17 @@ class Loop:
         # 4. select parent
         parent = self._select_parent()
         active = a.tasks("active")
-        self._ensure_evaluated(parent, active, g)  # parent must have fresh verdicts on every active task
-        parent_rate = a.pass_rate(parent, task_ids=[t["id"] for t in active])
+        active_ids = [t["id"] for t in active]
+        parent_eval = None
+        if cfg.paired_eval:
+            prev = self._latest_outcomes(parent, before=g)
+            self._evaluate_in_generation(parent, active, g)  # same generation, same tasks as the children
+            parent_n = self._clean_count(parent, active_ids, g)
+            parent_rate = parent_n / len(active_ids) if active_ids else None
+            parent_eval = self._retest(prev, self._latest_outcomes(parent, generation=g), active)
+        else:
+            self._ensure_evaluated(parent, active, g)  # parent must have verdicts on every active task
+            parent_rate = a.pass_rate(parent, task_ids=active_ids)
 
         # 5-7. improve, evaluate, accept
         accepted: Optional[str] = None
@@ -151,11 +172,14 @@ class Loop:
             a.add_agent(version, code, parent=parent, generation=g, notes=f"improver={self.improver.name}",
                         rationale=rationale)
             self._evaluate(version, active, generation=g, purpose="eval")
-            rate = a.pass_rate(version, task_ids=[t["id"] for t in active])
-            improved = rate is not None and parent_rate is not None and rate > parent_rate + 1e-9
+            rate = a.pass_rate(version, task_ids=active_ids)
+            if cfg.paired_eval:
+                improved = self._clean_count(version, active_ids, g) - parent_n >= cfg.accept_margin
+            else:
+                improved = rate is not None and parent_rate is not None and rate > parent_rate + 1e-9
             if improved:
                 a.set_agent_status(version, "alive")
-                if accepted is None or rate > (a.pass_rate(accepted, task_ids=[t["id"] for t in active]) or 0):
+                if accepted is None or rate > (a.pass_rate(accepted, task_ids=active_ids) or 0):
                     accepted = version
             else:
                 a.set_agent_status(version, "rejected")
@@ -164,17 +188,26 @@ class Loop:
 
         # champion update
         if accepted is not None:
-            champ_rate = a.pass_rate(self.champion, task_ids=[t["id"] for t in active])
-            acc_rate = a.pass_rate(accepted, task_ids=[t["id"] for t in active])
-            if champ_rate is None or (acc_rate or 0) > champ_rate:
+            if cfg.paired_eval:
+                if self.champion != parent:  # cmp / random parents: put the champion on the same footing
+                    self._evaluate_in_generation(self.champion, active, g)
+                promote = (self._clean_count(accepted, active_ids, g) - self._clean_count(self.champion, active_ids, g)
+                           >= cfg.accept_margin)
+            else:
+                champ_rate = a.pass_rate(self.champion, task_ids=active_ids)
+                acc_rate = a.pass_rate(accepted, task_ids=active_ids)
+                promote = champ_rate is None or (acc_rate or 0) > champ_rate
+            if promote:
                 a.set_agent_status(self.champion, "alive")
                 a.set_agent_status(accepted, "champion")
                 self.champion = accepted
+        self._evaluate_heldout(self.champion, generation=g)
 
         # 8. report
         usage_delta = self._meta_usage_delta(usage_before)
         summary = generation_summary(a, g, self.champion, {
-            "parent": parent, "parent_pass_rate": parent_rate, "children": children, "accepted_child": accepted,
+            "parent": parent, "parent_pass_rate": parent_rate, "parent_eval": parent_eval, "children": children,
+            "accepted_child": accepted,
             "difficulty_target": diff, "proposer_acceptance": self._last_filter_summary,
             "adversary": _strip(adv), "meta_llm_usage": usage_delta, "wall_s": round(time.time() - t0, 1),
         })
@@ -185,21 +218,28 @@ class Loop:
         return summary
 
     # ------------------------------------------------------------------ pieces
-    def _propose_and_filter(self, world, n: int, *, generation: int, difficulty: int) -> List[Dict[str, Any]]:
-        existing = self.archive.tasks("active")
+    def _propose_and_filter(self, world, n: int, *, generation: int, difficulty: int,
+                            n_heldout: int = 0) -> "tuple[List[Dict[str, Any]], List[Dict[str, Any]]]":
+        """Returns (active, heldout). Held-out tasks come from the same proposer call at the same difficulty,
+        split off at random, and are deduplicated against both pools so no near-copy can enter the active set."""
+        existing = self.archive.tasks("active") + self.archive.tasks("heldout")
         frontier = self._frontier_by_tag()
-        want = max(n, int(n * self.cfg.candidate_multiplier))
+        total = n + n_heldout
+        want = max(total, int(total * self.cfg.candidate_multiplier))
         cands = self.proposer.propose(world, want, generation=generation, existing=existing, frontier=frontier,
-                                      difficulty=difficulty)
+                                      difficulty=difficulty) if total else []
         rep = self.filter.run(cands, existing)
         self._last_filter_summary = rep.summary()
-        accepted = rep.accepted[:n]
-        for t in accepted:
+        pool = list(rep.accepted[:total])
+        random.Random(self.cfg.rng_seed * 100003 + generation).shuffle(pool)
+        k_held = round(len(pool) * n_heldout / total) if total else 0
+        held, accepted = pool[:k_held], pool[k_held:]
+        for t, status in [(t, "heldout") for t in held] + [(t, "active") for t in accepted]:
             t["max_steps"] = min(t["max_steps"], self.cfg.max_steps_cap)
-            self.archive.add_task(t)
-        self.log(f"[gen{generation}] proposed {len(cands)} -> accepted {len(accepted)} "
-                 f"(rejected: {rep.summary()['rejected_by']})")
-        return accepted
+            self.archive.add_task(t, status=status)
+        self.log(f"[gen{generation}] proposed {len(cands)} -> accepted {len(accepted)}"
+                 + (f" + {len(held)} held-out" if n_heldout else "") + f" (rejected: {rep.summary()['rejected_by']})")
+        return accepted, held
 
     def _attack_and_harden(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
         llm = self.adversary_llm_factory() if self.adversary_llm_factory else None
@@ -236,7 +276,7 @@ class Loop:
             ej = ep.to_json()
             ej["final_state_diff_n"] = len(_diff(ep))
             a.add_episode(generation, t, ej, v.to_json(), purpose=purpose, final_state=ep.final_state)
-            if v.passed and not v.hacking_suspected:
+            if purpose == "eval" and v.passed and not v.hacking_suspected:
                 row = next(r for r in a.task_rows() if r["id"] == t["id"])
                 if row["first_solved_gen"] is None:
                     a.set_task_fields(t["id"], first_solved_gen=generation)
@@ -248,6 +288,50 @@ class Loop:
         todo = [t for t in tasks if (t["id"], t.get("meta", {}).get("verifier_version", 1)) not in have]
         if todo:
             self._evaluate(version, todo, generation=generation, purpose="eval")
+
+    def _evaluate_in_generation(self, version: str, tasks: List[Dict[str, Any]], generation: int) -> None:
+        """Evaluate `version` on every task it has no episode for in this generation (the champion probe of
+        step 3 already covers the new tasks)."""
+        have = {e["task_id"] for e in self.archive.episodes(agent_version=version, purpose="eval", generation=generation)}
+        todo = [t for t in tasks if t["id"] not in have]
+        if todo:
+            self._evaluate(version, todo, generation=generation, purpose="eval")
+
+    def _evaluate_heldout(self, version: str, generation: int) -> None:
+        """Champion on every held-out task it has no verdict for at the task's current verifier version."""
+        held = self.archive.tasks("heldout")
+        if not held:
+            return
+        have = {(e["task_id"], e["verifier_version"]) for e in self.archive.episodes(agent_version=version, purpose="heldout")}
+        todo = [t for t in held if (t["id"], t.get("meta", {}).get("verifier_version", 1)) not in have]
+        if todo:
+            self._evaluate(version, todo, generation=generation, purpose="heldout")
+
+    def _latest_outcomes(self, version: str, *, generation: Optional[int] = None,
+                         before: Optional[int] = None) -> Dict[str, "tuple[int, int]"]:
+        """task_id -> (clean pass 1/0, verifier_version) of the latest eval episode, optionally restricted to one
+        generation or to generations before `before`."""
+        out: Dict[str, tuple] = {}
+        for e in self.archive.episodes(agent_version=version, purpose="eval"):
+            if generation is not None and e["generation"] != generation:
+                continue
+            if before is not None and e["generation"] >= before:
+                continue
+            out[e["task_id"]] = (int(bool(e["passed"]) and not bool(e["hacking"])), e["verifier_version"])
+        return out
+
+    def _clean_count(self, version: str, task_ids: List[str], generation: int) -> int:
+        out = self._latest_outcomes(version, generation=generation)
+        return sum(out[t][0] for t in task_ids if t in out)
+
+    @staticmethod
+    def _retest(prev: Dict[str, tuple], fresh: Dict[str, tuple], tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Test-retest of the parent: tasks it had already run under the same verifier version, outcome then vs now.
+        `flips` is the evaluation noise the acceptance margin has to clear."""
+        same = [t["id"] for t in tasks if t["id"] in prev and t["id"] in fresh and prev[t["id"]][1] == fresh[t["id"]][1]]
+        return {"tasks": len(tasks), "fresh_clean": sum(fresh[t["id"]][0] for t in tasks if t["id"] in fresh),
+                "retest_tasks": len(same), "retest_flips": sum(prev[t][0] != fresh[t][0] for t in same),
+                "retest_prev_clean": sum(prev[t][0] for t in same), "retest_fresh_clean": sum(fresh[t][0] for t in same)}
 
     def _solved_by(self, task_id: str, version: str) -> bool:
         return any(e["passed"] and not e["hacking"] for e in self.archive.episodes(agent_version=version, task_id=task_id))

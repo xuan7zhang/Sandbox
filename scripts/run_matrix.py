@@ -73,7 +73,11 @@ def main() -> None:
         codes = list(ex.map(run, jobs))
     run_dirs = [rd for (_, _, _, rd), c in zip(jobs, codes) if c == 0 and os.path.exists(os.path.join(rd, "generations.jsonl"))]
     if run_dirs:
-        subprocess.run([sys.executable, os.path.join(HERE, "report.py"), *run_dirs, "--out", os.path.join(matrix_dir, "report")])
+        r = subprocess.run([sys.executable, os.path.join(HERE, "report.py"), *run_dirs, "--out", os.path.join(matrix_dir, "report")])
+        codes.append(r.returncode)
+    failed = [f"{cond}/seed{seed}" for (cond, seed, _, _), c in zip(jobs, codes) if c != 0]
+    if failed or not run_dirs:
+        sys.exit(f"failed runs: {failed or 'all'} (see <run_dir>.log)")
 
 
 if __name__ == "__main__":
