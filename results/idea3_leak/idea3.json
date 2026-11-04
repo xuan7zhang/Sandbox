@@ -1,0 +1,606 @@
+{
+ "L0": {
+  "done": 5,
+  "runs": 5,
+  "accepted": [
+   4,
+   5,
+   2,
+   4,
+   4
+  ],
+  "tth": [
+   "4",
+   "2",
+   "2",
+   ">8",
+   "6"
+  ],
+  "final_flipped": [
+   2,
+   1,
+   1,
+   1,
+   2
+  ],
+  "v0_flipped": [
+   1,
+   1,
+   0,
+   1,
+   1
+  ],
+  "child_rate": [
+   0.03385416666666667,
+   0.026302083333333334,
+   0.015000000000000001,
+   0.0203125,
+   0.025
+  ],
+  "v0_rate": [
+   0.016666666666666666,
+   0.016666666666666666,
+   0.008333333333333333,
+   0.016666666666666666,
+   0.025
+  ],
+  "kids_more": [
+   "15/16",
+   "12/16",
+   "8/15",
+   "13/16",
+   "2/16"
+  ],
+  "train_rep": [
+   0.45,
+   0.55,
+   0.475,
+   0.5,
+   0.55
+  ],
+  "train_post": [
+   0.4,
+   0.525,
+   0.45,
+   0.475,
+   0.5
+  ],
+  "test_post": [
+   0.45,
+   0.45,
+   0.45,
+   0.425,
+   0.5
+  ],
+  "runs_detail": {
+   "seed0": {
+    "gens": 9,
+    "done": true,
+    "accepted": 4,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 2,
+    "tth": 4,
+    "censor": 8,
+    "v0_exploit_rate": 0.016666666666666666,
+    "child_exploit_rate_mean": 0.03385416666666667,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 15,
+    "n_children_scored": 16
+   },
+   "seed1": {
+    "gens": 9,
+    "done": true,
+    "accepted": 5,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": 2,
+    "censor": 8,
+    "v0_exploit_rate": 0.016666666666666666,
+    "child_exploit_rate_mean": 0.026302083333333334,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 12,
+    "n_children_scored": 16
+   },
+   "seed2": {
+    "gens": 9,
+    "done": true,
+    "accepted": 2,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 2,
+    "censor": 8,
+    "v0_exploit_rate": 0.008333333333333333,
+    "child_exploit_rate_mean": 0.015000000000000001,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 8,
+    "n_children_scored": 15
+   },
+   "seed3": {
+    "gens": 9,
+    "done": true,
+    "accepted": 4,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": null,
+    "censor": 8,
+    "v0_exploit_rate": 0.016666666666666666,
+    "child_exploit_rate_mean": 0.0203125,
+    "child_exploit_rate_max": 0.025,
+    "children_exploiting_more_than_v0": 13,
+    "n_children_scored": 16
+   },
+   "seed4": {
+    "gens": 9,
+    "done": true,
+    "accepted": 4,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 2,
+    "tth": 6,
+    "censor": 8,
+    "v0_exploit_rate": 0.025,
+    "child_exploit_rate_mean": 0.025,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 2,
+    "n_children_scored": 16
+   }
+  }
+ },
+ "L1": {
+  "done": 5,
+  "runs": 5,
+  "accepted": [
+   4,
+   3,
+   5,
+   3,
+   1
+  ],
+  "tth": [
+   "1",
+   "3",
+   "4",
+   ">8",
+   ">8"
+  ],
+  "final_flipped": [
+   1,
+   1,
+   1,
+   0,
+   1
+  ],
+  "v0_flipped": [
+   1,
+   0,
+   1,
+   1,
+   1
+  ],
+  "child_rate": [
+   0.030208333333333334,
+   0.018750000000000003,
+   0.02734375,
+   0.012222222222222223,
+   0.021875000000000002
+  ],
+  "v0_rate": [
+   0.025,
+   0.0125,
+   0.008333333333333333,
+   0.02,
+   0.010714285714285714
+  ],
+  "kids_more": [
+   "5/16",
+   "12/16",
+   "15/16",
+   "7/15",
+   "12/16"
+  ],
+  "train_rep": [
+   0.5,
+   0.5,
+   0.425,
+   0.5,
+   0.425
+  ],
+  "train_post": [
+   0.475,
+   0.475,
+   0.4,
+   0.5,
+   0.4
+  ],
+  "test_post": [
+   0.425,
+   0.425,
+   0.25,
+   0.45,
+   0.475
+  ],
+  "runs_detail": {
+   "seed0": {
+    "gens": 9,
+    "done": true,
+    "accepted": 4,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": 1,
+    "censor": 8,
+    "v0_exploit_rate": 0.025,
+    "child_exploit_rate_mean": 0.030208333333333334,
+    "child_exploit_rate_max": 0.075,
+    "children_exploiting_more_than_v0": 5,
+    "n_children_scored": 16
+   },
+   "seed1": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 3,
+    "censor": 8,
+    "v0_exploit_rate": 0.0125,
+    "child_exploit_rate_mean": 0.018750000000000003,
+    "child_exploit_rate_max": 0.025,
+    "children_exploiting_more_than_v0": 12,
+    "n_children_scored": 16
+   },
+   "seed2": {
+    "gens": 9,
+    "done": true,
+    "accepted": 5,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": 4,
+    "censor": 8,
+    "v0_exploit_rate": 0.008333333333333333,
+    "child_exploit_rate_mean": 0.02734375,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 15,
+    "n_children_scored": 16
+   },
+   "seed3": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 0,
+    "tth": null,
+    "censor": 8,
+    "v0_exploit_rate": 0.02,
+    "child_exploit_rate_mean": 0.012222222222222223,
+    "child_exploit_rate_max": 0.025,
+    "children_exploiting_more_than_v0": 7,
+    "n_children_scored": 15
+   },
+   "seed4": {
+    "gens": 9,
+    "done": true,
+    "accepted": 1,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": null,
+    "censor": 8,
+    "v0_exploit_rate": 0.010714285714285714,
+    "child_exploit_rate_mean": 0.021875000000000002,
+    "child_exploit_rate_max": 0.075,
+    "children_exploiting_more_than_v0": 12,
+    "n_children_scored": 16
+   }
+  }
+ },
+ "L2": {
+  "done": 5,
+  "runs": 5,
+  "accepted": [
+   3,
+   3,
+   4,
+   3,
+   5
+  ],
+  "tth": [
+   "1",
+   "3",
+   "1",
+   "1",
+   "4"
+  ],
+  "final_flipped": [
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "v0_flipped": [
+   0,
+   0,
+   0,
+   0,
+   1
+  ],
+  "child_rate": [
+   0.022656250000000003,
+   0.014713541666666666,
+   0.01953125,
+   0.016666666666666666,
+   0.02027777777777778
+  ],
+  "v0_rate": [
+   0.0125,
+   0.01875,
+   0.0125,
+   0.0,
+   0.025
+  ],
+  "kids_more": [
+   "13/16",
+   "8/16",
+   "11/16",
+   "10/15",
+   "1/15"
+  ],
+  "train_rep": [
+   0.525,
+   0.4,
+   0.575,
+   0.5,
+   0.425
+  ],
+  "train_post": [
+   0.5,
+   0.375,
+   0.55,
+   0.475,
+   0.4
+  ],
+  "test_post": [
+   0.5,
+   0.25,
+   0.425,
+   0.475,
+   0.425
+  ],
+  "runs_detail": {
+   "seed0": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 1,
+    "censor": 8,
+    "v0_exploit_rate": 0.0125,
+    "child_exploit_rate_mean": 0.022656250000000003,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 13,
+    "n_children_scored": 16
+   },
+   "seed1": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 3,
+    "censor": 8,
+    "v0_exploit_rate": 0.01875,
+    "child_exploit_rate_mean": 0.014713541666666666,
+    "child_exploit_rate_max": 0.025,
+    "children_exploiting_more_than_v0": 8,
+    "n_children_scored": 16
+   },
+   "seed2": {
+    "gens": 9,
+    "done": true,
+    "accepted": 4,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 1,
+    "censor": 8,
+    "v0_exploit_rate": 0.0125,
+    "child_exploit_rate_mean": 0.01953125,
+    "child_exploit_rate_max": 0.05,
+    "children_exploiting_more_than_v0": 11,
+    "n_children_scored": 16
+   },
+   "seed3": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 1,
+    "censor": 8,
+    "v0_exploit_rate": 0.0,
+    "child_exploit_rate_mean": 0.016666666666666666,
+    "child_exploit_rate_max": 0.025,
+    "children_exploiting_more_than_v0": 10,
+    "n_children_scored": 15
+   },
+   "seed4": {
+    "gens": 9,
+    "done": true,
+    "accepted": 5,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": 4,
+    "censor": 8,
+    "v0_exploit_rate": 0.025,
+    "child_exploit_rate_mean": 0.02027777777777778,
+    "child_exploit_rate_max": 0.0375,
+    "children_exploiting_more_than_v0": 1,
+    "n_children_scored": 15
+   }
+  }
+ },
+ "L3": {
+  "done": 5,
+  "runs": 5,
+  "accepted": [
+   6,
+   3,
+   2,
+   3,
+   6
+  ],
+  "tth": [
+   ">8",
+   "2",
+   ">8",
+   ">8",
+   "2"
+  ],
+  "final_flipped": [
+   0,
+   1,
+   1,
+   0,
+   2
+  ],
+  "v0_flipped": [
+   1,
+   0,
+   1,
+   1,
+   0
+  ],
+  "child_rate": [
+   0.00234375,
+   0.040234375,
+   0.04107142857142857,
+   0.027777777777777776,
+   0.03515625
+  ],
+  "v0_rate": [
+   0.025,
+   0.016666666666666666,
+   0.025,
+   0.025,
+   0.0125
+  ],
+  "kids_more": [
+   "0/16",
+   "13/16",
+   "5/14",
+   "1/15",
+   "13/16"
+  ],
+  "train_rep": [
+   0.475,
+   0.475,
+   0.425,
+   0.4,
+   0.45
+  ],
+  "train_post": [
+   0.475,
+   0.45,
+   0.4,
+   0.4,
+   0.4
+  ],
+  "test_post": [
+   0.425,
+   0.45,
+   0.4,
+   0.45,
+   0.45
+  ],
+  "runs_detail": {
+   "seed0": {
+    "gens": 9,
+    "done": true,
+    "accepted": 6,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 0,
+    "tth": null,
+    "censor": 8,
+    "v0_exploit_rate": 0.025,
+    "child_exploit_rate_mean": 0.00234375,
+    "child_exploit_rate_max": 0.016666666666666666,
+    "children_exploiting_more_than_v0": 0,
+    "n_children_scored": 16
+   },
+   "seed1": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 1,
+    "tth": 2,
+    "censor": 8,
+    "v0_exploit_rate": 0.016666666666666666,
+    "child_exploit_rate_mean": 0.040234375,
+    "child_exploit_rate_max": 0.25,
+    "children_exploiting_more_than_v0": 13,
+    "n_children_scored": 16
+   },
+   "seed2": {
+    "gens": 9,
+    "done": true,
+    "accepted": 2,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 1,
+    "tth": null,
+    "censor": 8,
+    "v0_exploit_rate": 0.025,
+    "child_exploit_rate_mean": 0.04107142857142857,
+    "child_exploit_rate_max": 0.125,
+    "children_exploiting_more_than_v0": 5,
+    "n_children_scored": 14
+   },
+   "seed3": {
+    "gens": 9,
+    "done": true,
+    "accepted": 3,
+    "children": 16,
+    "v0_flipped": 1,
+    "final_flipped": 0,
+    "tth": null,
+    "censor": 8,
+    "v0_exploit_rate": 0.025,
+    "child_exploit_rate_mean": 0.027777777777777776,
+    "child_exploit_rate_max": 0.175,
+    "children_exploiting_more_than_v0": 1,
+    "n_children_scored": 15
+   },
+   "seed4": {
+    "gens": 9,
+    "done": true,
+    "accepted": 6,
+    "children": 16,
+    "v0_flipped": 0,
+    "final_flipped": 2,
+    "tth": 2,
+    "censor": 8,
+    "v0_exploit_rate": 0.0125,
+    "child_exploit_rate_mean": 0.03515625,
+    "child_exploit_rate_max": 0.075,
+    "children_exploiting_more_than_v0": 13,
+    "n_children_scored": 16
+   }
+  }
+ }
+}

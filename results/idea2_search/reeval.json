@@ -1,0 +1,388 @@
+{
+ "rows": {
+  "S_best/seed0:g3c0": {
+   "condition": "S_best",
+   "reps": [
+    0.6,
+    0.571,
+    0.486
+   ],
+   "mean": 0.552
+  },
+  "S_best/seed1:g7c0": {
+   "condition": "S_best",
+   "reps": [
+    0.571,
+    0.571,
+    0.543
+   ],
+   "mean": 0.562
+  },
+  "S_best/seed2:g7c1": {
+   "condition": "S_best",
+   "reps": [
+    0.571,
+    0.543,
+    0.543
+   ],
+   "mean": 0.552
+  },
+  "S_best/seed3:g6c0": {
+   "condition": "S_best",
+   "reps": [
+    0.6,
+    0.6,
+    0.571
+   ],
+   "mean": 0.59
+  },
+  "S_best/seed4:g8c0": {
+   "condition": "S_best",
+   "reps": [
+    0.6,
+    0.571,
+    0.543
+   ],
+   "mean": 0.571
+  },
+  "S_cmp/seed0:g4c1": {
+   "condition": "S_cmp",
+   "reps": [
+    0.6,
+    0.571,
+    0.571
+   ],
+   "mean": 0.581
+  },
+  "S_cmp/seed1:g8c0": {
+   "condition": "S_cmp",
+   "reps": [
+    0.629,
+    0.629,
+    0.629
+   ],
+   "mean": 0.629
+  },
+  "S_cmp/seed2:g6c1": {
+   "condition": "S_cmp",
+   "reps": [
+    0.543,
+    0.571,
+    0.543
+   ],
+   "mean": 0.552
+  },
+  "S_cmp/seed3:g7c0": {
+   "condition": "S_cmp",
+   "reps": [
+    0.6,
+    0.629,
+    0.657
+   ],
+   "mean": 0.629
+  },
+  "S_cmp/seed4:g8c1": {
+   "condition": "S_cmp",
+   "reps": [
+    0.629,
+    0.6,
+    0.571
+   ],
+   "mean": 0.6
+  },
+  "S_random/seed0:g6c1": {
+   "condition": "S_random",
+   "reps": [
+    0.714,
+    0.771,
+    0.657
+   ],
+   "mean": 0.714
+  },
+  "S_random/seed1:g8c0": {
+   "condition": "S_random",
+   "reps": [
+    0.6,
+    0.6,
+    0.6
+   ],
+   "mean": 0.6
+  },
+  "S_random/seed2:g7c0": {
+   "condition": "S_random",
+   "reps": [
+    0.686,
+    0.686,
+    0.6
+   ],
+   "mean": 0.657
+  },
+  "S_random/seed3:g7c0": {
+   "condition": "S_random",
+   "reps": [
+    0.771,
+    0.686,
+    0.629
+   ],
+   "mean": 0.695
+  },
+  "S_random/seed4:g8c0": {
+   "condition": "S_random",
+   "reps": [
+    0.6,
+    0.6,
+    0.514
+   ],
+   "mean": 0.571
+  },
+  "S_best_nodiag/seed0:g3c1": {
+   "condition": "S_best_nodiag",
+   "reps": [
+    0.686,
+    0.657,
+    0.686
+   ],
+   "mean": 0.676
+  },
+  "S_best_nodiag/seed1:g8c0": {
+   "condition": "S_best_nodiag",
+   "reps": [
+    0.657,
+    0.657,
+    0.686
+   ],
+   "mean": 0.667
+  },
+  "S_best_nodiag/seed2:g3c0": {
+   "condition": "S_best_nodiag",
+   "reps": [
+    0.629,
+    0.629,
+    0.6
+   ],
+   "mean": 0.619
+  },
+  "S_best_nodiag/seed3:g8c0": {
+   "condition": "S_best_nodiag",
+   "reps": [
+    0.771,
+    0.657,
+    0.714
+   ],
+   "mean": 0.714
+  },
+  "S_best_nodiag/seed4:g8c0": {
+   "condition": "S_best_nodiag",
+   "reps": [
+    0.6,
+    0.657,
+    0.686
+   ],
+   "mean": 0.648
+  },
+  "S_best_m3/seed0:g4c0": {
+   "condition": "S_best_m3",
+   "reps": [
+    0.571,
+    0.629,
+    0.6
+   ],
+   "mean": 0.6
+  },
+  "S_best_m3/seed1:g1c0": {
+   "condition": "S_best_m3",
+   "reps": [
+    0.657,
+    0.657,
+    0.629
+   ],
+   "mean": 0.648
+  },
+  "S_best_m3/seed2:g3c0": {
+   "condition": "S_best_m3",
+   "reps": [
+    0.6,
+    0.6,
+    0.571
+   ],
+   "mean": 0.59
+  },
+  "S_best_nodiag_m3/seed0:g5c0": {
+   "condition": "S_best_nodiag_m3",
+   "reps": [
+    0.714,
+    0.686,
+    0.743
+   ],
+   "mean": 0.714
+  },
+  "S_best_nodiag_m3/seed1:g6c0": {
+   "condition": "S_best_nodiag_m3",
+   "reps": [
+    0.686,
+    0.714,
+    0.743
+   ],
+   "mean": 0.714
+  },
+  "S_best_nodiag_m3/seed2:g2c1": {
+   "condition": "S_best_nodiag_m3",
+   "reps": [
+    0.686,
+    0.686,
+    0.714
+   ],
+   "mean": 0.695
+  },
+  "S_cmp_m3/seed0:g1c0": {
+   "condition": "S_cmp_m3",
+   "reps": [
+    0.571,
+    0.629,
+    0.571
+   ],
+   "mean": 0.59
+  },
+  "S_cmp_m3/seed1:g3c0": {
+   "condition": "S_cmp_m3",
+   "reps": [
+    0.6,
+    0.543,
+    0.571
+   ],
+   "mean": 0.571
+  },
+  "S_cmp_m3/seed2:g1c1": {
+   "condition": "S_cmp_m3",
+   "reps": [
+    0.6,
+    0.6,
+    0.6
+   ],
+   "mean": 0.6
+  },
+  "S_random_m3/seed0:g7c0": {
+   "condition": "S_random_m3",
+   "reps": [
+    0.714,
+    0.771,
+    0.714
+   ],
+   "mean": 0.733
+  },
+  "S_random_m3/seed1:g1c0": {
+   "condition": "S_random_m3",
+   "reps": [
+    0.629,
+    0.657,
+    0.657
+   ],
+   "mean": 0.648
+  },
+  "S_random_m3/seed2:g2c1": {
+   "condition": "S_random_m3",
+   "reps": [
+    0.571,
+    0.657,
+    0.657
+   ],
+   "mean": 0.629
+  },
+  "v0": {
+   "condition": "v0",
+   "reps": [
+    0.571,
+    0.629,
+    0.6
+   ],
+   "mean": 0.6
+  }
+ },
+ "by_condition": {
+  "S_best": [
+   0.552,
+   0.562,
+   0.552,
+   0.59,
+   0.571
+  ],
+  "S_cmp": [
+   0.581,
+   0.629,
+   0.552,
+   0.629,
+   0.6
+  ],
+  "S_random": [
+   0.714,
+   0.6,
+   0.657,
+   0.695,
+   0.571
+  ],
+  "S_best_nodiag": [
+   0.676,
+   0.667,
+   0.619,
+   0.714,
+   0.648
+  ],
+  "S_best_m3": [
+   0.6,
+   0.648,
+   0.59
+  ],
+  "S_best_nodiag_m3": [
+   0.714,
+   0.714,
+   0.695
+  ],
+  "S_cmp_m3": [
+   0.59,
+   0.571,
+   0.6
+  ],
+  "S_random_m3": [
+   0.733,
+   0.648,
+   0.629
+  ],
+  "v0": [
+   0.6
+  ]
+ },
+ "tests": {
+  "[accept_margin 1] best - best_nodiag": [
+   -0.099,
+   0.0015
+  ],
+  "[accept_margin 1] best - random": [
+   -0.082,
+   0.0375
+  ],
+  "[accept_margin 1] cmp - best": [
+   0.033,
+   0.0934
+  ],
+  "[accept_margin 1] (best+cmp) - (random+nodiag)": [
+   -0.074,
+   0.0008
+  ],
+  "[accept_margin 3] best - best_nodiag": [
+   -0.095,
+   0.0236
+  ],
+  "[accept_margin 3] best - random": [
+   -0.057,
+   0.2116
+  ],
+  "[accept_margin 3] cmp - best": [
+   -0.026,
+   0.29
+  ],
+  "[accept_margin 3] (best+cmp) - (random+nodiag)": [
+   -0.089,
+   0.0018
+  ]
+ }
+}
