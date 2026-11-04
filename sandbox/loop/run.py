@@ -46,6 +46,7 @@ class LoopConfig:
     tasks_per_gen: int = 8
     initial_tasks: int = 12
     candidate_multiplier: float = 1.5  # ask the proposer for more than needed; filters trim
+    propose_rounds: int = 4  # top-up rounds per generation when the filters leave fewer tasks than requested
     difficulty: str = "frontier"  # "frontier" or an int as string
     children_per_gen: int = 1
     selection: str = "best"  # best | cmp | random
@@ -62,6 +63,9 @@ class LoopConfig:
     initial_agent_dir: str = V0_DIR
     solver_llm_cfg: Dict[str, Any] = field(default_factory=dict)  # for subprocess solver
     rng_seed: int = 0
+    task_pool: str = ""  # static-benchmark protocol: JSON with "train" (active) and "test" (held-out) task lists,
+    #                      loaded at gen 0 instead of proposing; pair with tasks_per_gen=0, heldout_per_gen=0, adversary=False
+    eval_workers: int = 1  # episodes of one evaluation call run concurrently (results are recorded in task order)
 
 
 class Loop:
@@ -107,9 +111,12 @@ class Loop:
         a.add_agent_from_dir("v0", self.cfg.initial_agent_dir, parent=None, generation=0, notes="initial agent",
                              status="champion")
         self.champion = "v0"
-        world = get_world(self.cfg.world, seed=self.cfg.base_seed)
-        new, held = self._propose_and_filter(world, self.cfg.initial_tasks, generation=0, difficulty=self._difficulty_target(),
-                                             n_heldout=self.cfg.initial_heldout)
+        if self.cfg.task_pool:
+            new, held = self._load_task_pool(self.cfg.task_pool)
+        else:
+            world = get_world(self.cfg.world, seed=self.cfg.base_seed)
+            new, held = self._propose_and_filter(world, self.cfg.initial_tasks, generation=0,
+                                                 difficulty=self._difficulty_target(), n_heldout=self.cfg.initial_heldout)
         if not new:
             raise RuntimeError(f"generation 0: the proposer produced no accepted task "
                                f"(filter summary: {self._last_filter_summary}); refusing to start an empty run")
@@ -161,7 +168,10 @@ class Loop:
         for k in range(cfg.children_per_gen):
             version = f"g{g}c{k}"
             diag = self._diagnostics(parent, active)
-            code, rationale = self.improver.improve(a.agent_code(parent), diag)
+            try:
+                code, rationale = self.improver.improve(a.agent_code(parent), diag)
+            except Exception as e:  # noqa: BLE001  (an LLM/server error costs this child, not the run)
+                code, rationale = None, f"improver error: {e!r}"[:500]
             if code is None:
                 children.append({"version": version, "status": "invalid", "reason": rationale})
                 continue
@@ -218,6 +228,23 @@ class Loop:
         return summary
 
     # ------------------------------------------------------------------ pieces
+    def _load_task_pool(self, path: str) -> "tuple[List[Dict[str, Any]], List[Dict[str, Any]]]":
+        """Fixed train/test tasks shared by every run (verifiers already hardened when the pool was built)."""
+        pool = json.load(open(path))
+        out = []
+        for key, status in (("train", "active"), ("test", "heldout")):
+            ts = []
+            for t in pool[key]:
+                t = json.loads(json.dumps(t))
+                t["generation"] = 0
+                t["max_steps"] = min(t["max_steps"], self.cfg.max_steps_cap)
+                self.archive.add_task(t, status=status)
+                ts.append(t)
+            out.append(ts)
+        self._last_filter_summary = {"task_pool": path, "train": len(out[0]), "test": len(out[1])}
+        self.log(f"[gen0] loaded task pool {path}: {len(out[0])} train + {len(out[1])} test")
+        return out[0], out[1]
+
     def _propose_and_filter(self, world, n: int, *, generation: int, difficulty: int,
                             n_heldout: int = 0) -> "tuple[List[Dict[str, Any]], List[Dict[str, Any]]]":
         """Returns (active, heldout). Held-out tasks come from the same proposer call at the same difficulty,
@@ -225,20 +252,44 @@ class Loop:
         existing = self.archive.tasks("active") + self.archive.tasks("heldout")
         frontier = self._frontier_by_tag()
         total = n + n_heldout
-        want = max(total, int(total * self.cfg.candidate_multiplier))
-        cands = self.proposer.propose(world, want, generation=generation, existing=existing, frontier=frontier,
-                                      difficulty=difficulty) if total else []
-        rep = self.filter.run(cands, existing)
-        self._last_filter_summary = rep.summary()
-        pool = list(rep.accepted[:total])
+        # top up: a real proposer loses most candidates to the filters, so ask again (up to propose_rounds
+        # times) until the target is met; acceptance is reported over all rounds
+        pool: List[Dict[str, Any]] = []
+        summ = {"candidates": 0, "accepted": 0, "rejected_by": {}, "rounds": 0}
+        used_ids = {t["id"] for t in existing}
+        while total and len(pool) < total and summ["rounds"] < self.cfg.propose_rounds:
+            need = total - len(pool)
+            want = max(need, int(need * self.cfg.candidate_multiplier))
+            try:
+                cands = self.proposer.propose(world, want, generation=generation, existing=existing + pool,
+                                              frontier=frontier, difficulty=difficulty)
+            except Exception as e:  # noqa: BLE001  (gen 0 still refuses an empty task set below)
+                self.log(f"[gen{generation}] proposer error: {e!r}")
+                cands = []
+            for t in cands:  # ids are per-call ordinals: make them unique across rounds
+                k = 0
+                while t["id"] in used_ids:
+                    t["id"] = f"g{generation}-r{summ['rounds']}-{k:04d}"
+                    k += 1
+                used_ids.add(t["id"])
+            rep = self.filter.run(cands, existing + pool)
+            s = rep.summary()
+            summ["rounds"] += 1
+            summ["candidates"] += s["candidates"]
+            summ["accepted"] += s["accepted"]
+            for k2, v in s.get("rejected_by", {}).items():
+                summ["rejected_by"][k2] = summ["rejected_by"].get(k2, 0) + v
+            pool += list(rep.accepted[:need])
+        summ["acceptance_rate"] = round(summ["accepted"] / summ["candidates"], 3) if summ["candidates"] else None
+        self._last_filter_summary = summ
         random.Random(self.cfg.rng_seed * 100003 + generation).shuffle(pool)
         k_held = round(len(pool) * n_heldout / total) if total else 0
         held, accepted = pool[:k_held], pool[k_held:]
         for t, status in [(t, "heldout") for t in held] + [(t, "active") for t in accepted]:
             t["max_steps"] = min(t["max_steps"], self.cfg.max_steps_cap)
             self.archive.add_task(t, status=status)
-        self.log(f"[gen{generation}] proposed {len(cands)} -> accepted {len(accepted)}"
-                 + (f" + {len(held)} held-out" if n_heldout else "") + f" (rejected: {rep.summary()['rejected_by']})")
+        self.log(f"[gen{generation}] proposed {summ['candidates']} in {summ['rounds']} round(s) -> accepted {len(accepted)}"
+                 + (f" + {len(held)} held-out" if n_heldout else "") + f" (rejected: {summ['rejected_by']})")
         return accepted, held
 
     def _attack_and_harden(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -266,13 +317,23 @@ class Loop:
 
     def _evaluate(self, version: str, tasks: List[Dict[str, Any]], *, generation: int, purpose: str) -> None:
         a = self.archive
-        for t in tasks:
+        agent_dir = a.agent_dir(version)
+
+        def one(t):
             world = get_world(t["world"], seed=t["seed"])
             llm = self.solver_llm_factory() if self.solver_llm_factory else None
-            ep = run_episode(a.agent_dir(version), world, public_view(t, world.describe()), agent_version=version,
+            ep = run_episode(agent_dir, world, public_view(t, world.describe()), agent_version=version,
                              llm=llm, llm_cfg=self.cfg.solver_llm_cfg, max_steps=t["max_steps"],
                              timeout_s=self.cfg.episode_timeout_s, isolate=self.cfg.isolate and llm is None)
-            v = self.stack.judge(t, ep)
+            return t, ep, self.stack.judge(t, ep)
+
+        if self.cfg.eval_workers > 1 and len(tasks) > 1 and self.solver_llm_factory is None:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(min(self.cfg.eval_workers, len(tasks))) as ex:
+                results = list(ex.map(one, tasks))  # episodes in parallel; archive writes stay in this thread
+        else:
+            results = (one(t) for t in tasks)
+        for t, ep, v in results:
             ej = ep.to_json()
             ej["final_state_diff_n"] = len(_diff(ep))
             a.add_episode(generation, t, ej, v.to_json(), purpose=purpose, final_state=ep.final_state)
@@ -388,7 +449,8 @@ class Loop:
         failures, hacks = [], []
         for tid, e in latest.items():
             item = {"task_id": tid, "difficulty": ids[tid]["difficulty"], "instruction": ids[tid]["instruction"],
-                    "status": e["status"], "steps": e["steps"], "flags": json.loads(e["flags"] or "[]")}
+                    "status": e["status"], "steps": e["steps"], "flags": json.loads(e["flags"] or "[]"),
+                    "verifier_code": ids[tid].get("verifier", {}).get("code")}  # shown only at improver leak >= 4
             path = os.path.join(a.run_dir, "episodes", f"g{e['generation']}", f"{e['id']}.json")
             try:
                 with open(path) as f:

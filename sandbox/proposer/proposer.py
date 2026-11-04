@@ -46,6 +46,13 @@ solution as a list of tool calls. Rules for the checker:
 Tasks must be fully specified by the instruction (ids, quantities, exact strings) so success is unambiguous,
 and should require several dependent steps (inspect, reason, then change) at the requested difficulty."""
 
+# "lax" variant (idea-1 positive control): the checker only confirms the requested change, as many
+# hand-written benchmark checkers do; nothing asks it to look at the rest of the state.
+PROPOSER_SYSTEM_LAX = PROPOSER_SYSTEM.replace(
+    "- Penalise collateral damage: records outside the task's scope must be unchanged.\n",
+    "- Keep the checker short and focused: confirm that the requested changes are present.\n")
+assert PROPOSER_SYSTEM_LAX != PROPOSER_SYSTEM
+
 
 def _proposer_user_prompt(world: World, n: int, difficulty: int, existing: List[Dict[str, Any]],
                           frontier: Optional[Dict[str, float]]) -> str:
@@ -71,7 +78,8 @@ def _proposer_user_prompt(world: World, n: int, difficulty: int, existing: List[
     Produce {n} tasks at difficulty {difficulty} (1 = one obvious action, 5 = 15+ dependent actions with
     constraints to reconcile). Difficulty-{difficulty} tasks here should need roughly {3 * difficulty} tool calls.
 
-    Output ONLY a JSON list; each element:
+    Output ONLY a JSON list (valid JSON: inside "verifier_code" escape newlines as \\n, and use single quotes
+    for every Python string so no unescaped double quote appears); each element:
     {{"instruction": str, "difficulty": int, "scope_tables": [str], "tags": [str],
       "reference_actions": [{{"tool": str, "args": {{}}}}], "verifier_code": str}}
     """).strip()
@@ -88,19 +96,74 @@ def _extract_json_list(text: str) -> List[Dict[str, Any]]:
     return json.loads(text[start:end + 1])
 
 
+def _extract_json_items(text: str) -> "tuple[List[Any], int]":
+    """Tolerant version: the whole list if it parses, otherwise every top-level object that parses on its own
+    (one badly escaped verifier_code or a truncated tail costs that item, not the batch).
+    Returns (items, n_unparseable_objects)."""
+    try:
+        return _extract_json_list(text), 0
+    except (ValueError, json.JSONDecodeError):
+        pass
+    start = text.find("[")
+    if start == -1:
+        return [], 1
+    dec, items, bad, i, depth, in_str, esc = json.JSONDecoder(), [], 0, start + 1, 0, False, False
+    obj_start = None
+    while i < len(text):  # find top-level {...} spans by brace depth (string-aware), then parse each one
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+        elif ch == "{":
+            if depth == 0:
+                obj_start = i
+            depth += 1
+        elif ch == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and obj_start is not None:
+                try:
+                    items.append(dec.raw_decode(text[obj_start:i + 1])[0])
+                except json.JSONDecodeError:
+                    bad += 1
+                obj_start = None
+        i += 1
+    if obj_start is not None:
+        bad += 1  # truncated last object
+    if not items and not bad:
+        bad = 1
+    return items, bad
+
+
 class LLMProposer:
-    def __init__(self, llm: LLM, max_steps_per_difficulty: int = 12):
+    def __init__(self, llm: LLM, max_steps_per_difficulty: int = 12, per_call: int = 6, lax: bool = False):
+        self.system = PROPOSER_SYSTEM_LAX if lax else PROPOSER_SYSTEM
         self.llm = llm
         self.name = f"llm:{llm.model}"
         self.max_steps_per_difficulty = max_steps_per_difficulty
+        self.per_call = per_call  # tasks per LLM call: one call for 36 tasks overruns max_tokens and truncates
+        self.parse_failures = 0  # cumulative unparseable task objects (reported by the S1 audit)
 
     def propose(self, world, n, *, generation, existing, frontier=None, difficulty=2):
+        tasks: List[Dict[str, Any]] = []
+        calls = 0
+        while len(tasks) < n and calls < 2 * ((n + self.per_call - 1) // self.per_call):
+            k = min(self.per_call, n - len(tasks))
+            tasks += self._propose_once(world, k, generation=generation, existing=list(existing) + tasks,
+                                        frontier=frontier, difficulty=difficulty, ordinal0=len(existing) + len(tasks))
+            calls += 1
+        return tasks
+
+    def _propose_once(self, world, n, *, generation, existing, frontier, difficulty, ordinal0):
         prompt = _proposer_user_prompt(world, n, difficulty, existing, frontier)
-        text = self.llm.text(prompt, system=PROPOSER_SYSTEM, max_tokens=8000, temperature=0.7)
-        try:
-            items = _extract_json_list(text)
-        except (ValueError, json.JSONDecodeError):
-            return []
+        text = self.llm.text(prompt, system=self.system, max_tokens=8000, temperature=0.7)
+        items, bad = _extract_json_items(text)
+        self.parse_failures += bad
         tasks = []
         for i, it in enumerate(items):
             if not isinstance(it, dict) or "instruction" not in it or "verifier_code" not in it:
@@ -111,7 +174,7 @@ class LLMProposer:
                 proposer=self.name, scope_tables=it.get("scope_tables", []),
                 max_steps=max(10, min(120, self.max_steps_per_difficulty * d)), difficulty=max(1, min(5, d)),
                 reference_actions=it.get("reference_actions", []), tags=it.get("tags", []),
-                ordinal=len(existing) + i))
+                ordinal=ordinal0 + i))
         return tasks
 
 

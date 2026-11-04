@@ -86,6 +86,21 @@ def add_scope_guard(task: Dict[str, Any]) -> bool:
     ok, why = check_verifier_code_safety(code)
     if not ok:
         return False
+    # the declared scope can be incomplete (e.g. a task that sends an email but omits 'outbox');
+    # then the guard would fail the reference solution too, so refuse rather than break the task
+    refs = task.get("reference_actions") or []
+    if refs:
+        world = get_world(task["world"], seed=task["seed"])
+        initial = world.state()
+        traj = []
+        for i, a in enumerate(refs):
+            r = world.call(a.get("tool", ""), a.get("args") or {}, allow_hidden=True)
+            traj.append({"step": i + 1, "tool": a.get("tool"), "args": a.get("args"), "ok": r.ok, "error": r.error})
+        final = world.state()
+        base_ok = run_verifier_code(task["verifier"]["code"], initial, final, traj, "reference").passed
+        if base_ok and not run_verifier_code(code, initial, final, traj, "reference").passed:
+            task.setdefault("meta", {})["scope_guard_breaks_reference"] = True
+            return False
     task["verifier"]["code"] = code
     task.setdefault("meta", {})["scope_guard"] = True
     return True

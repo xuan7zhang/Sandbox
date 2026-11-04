@@ -74,13 +74,13 @@ def main() -> None:
 
     # proposer
     p = models.get("proposer", {})
-    proposer = MockProposer(seed=lc.rng_seed) if p.get("provider") == "mock" else LLMProposer(_llm(p)())
+    proposer = MockProposer(seed=lc.rng_seed) if p.get("provider") == "mock" else LLMProposer(_llm(p)(), **p.get("kwargs", {}))
     # improver
     im = models.get("improver", {})
     if im.get("provider") == "mock":
         improver = MockImprover(**im.get("kwargs", {}))
     else:
-        improver = RandomImprover(_llm(im)()) if a.baseline == "random" else LLMImprover(_llm(im)())
+        improver = RandomImprover(_llm(im)()) if a.baseline == "random" else LLMImprover(_llm(im)(), **im.get("kwargs", {}))
     solver_factory = _llm(solver) if solver.get("provider") == "mock" else None
     adversary_factory = _llm(models.get("adversary"))
     hardening_llm = _llm(models.get("hardening"))

@@ -126,8 +126,11 @@ class OpenAILLM(LLM):
         super().__init__(model)
         import openai  # lazy
 
+        # long unattended runs: ride out server restarts / overload instead of crashing the whole loop
         self._c = openai.OpenAI(base_url=base_url or os.environ.get("LLM_BASE_URL") or None,
-                                api_key=os.environ.get("OPENAI_API_KEY", "EMPTY"))
+                                api_key=os.environ.get("OPENAI_API_KEY", "EMPTY"),
+                                max_retries=int(os.environ.get("LLM_MAX_RETRIES", "8")),
+                                timeout=float(os.environ.get("LLM_TIMEOUT_S", "900")))
 
     def chat(self, messages, tools=None, max_tokens=2048, temperature=0.0) -> LLMResponse:
         conv: List[Dict[str, Any]] = []

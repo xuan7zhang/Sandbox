@@ -64,7 +64,7 @@ def main():
     if p.get("provider") == "mock":
         proposer = MockProposer(seed=0)
     else:
-        proposer = LLMProposer(get_llm(p.get("provider"), p.get("model"), base_url=p.get("base_url")))
+        proposer = LLMProposer(get_llm(p.get("provider"), p.get("model"), base_url=p.get("base_url")), **p.get("kwargs", {}))
     os.makedirs(a.out, exist_ok=True)
 
     # 1. generate + filter
@@ -120,6 +120,7 @@ def main():
                     "passes_after": rate("after", name), "undetected_after": rate("after", name, True)} for name in EXPLOITS}
     table["hardened"] = {k: round(sum(1 for r in rows if r["hardened"][k]) / n, 3) for k in ("scope_guard", "minimality_guard")}
     json.dump({"n": len(rows), "candidates": len(cands), "proposer_errors": errors,
+               "proposer_parse_failures": getattr(proposer, "parse_failures", None),
                "acceptance_rate": round(acc_total / len(cands), 3) if cands else None,
                "rejected_by": dict(rep_summary), "table": table, "rows": rows,
                "tasks": accepted}, open(os.path.join(a.out, "audit.json"), "w"), indent=1, ensure_ascii=False)
